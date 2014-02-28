@@ -159,18 +159,22 @@ def get_compiler_settings(version_str):
         settings['libraries'].append('odbc32')
 
     elif sys.platform == 'darwin':
-        # OS/X now ships with iODBC.
-        settings['libraries'].append('iodbc')
+        if map(int, platform.mac_ver()[0].split('.')) < [10, 8]:
+            # OS/X used to ship with iODBC.
+            # Apple has decided they won't maintain the iODBC system in OS/X and has added deprecation warnings in 10.8.
+            # For now target 10.7 to eliminate the warnings.
+            settings['libraries'].append('iodbc')
+            settings['define_macros'].append( ('MAC_OS_X_VERSION_10_7',) )
+
+        else:
+            # this assumes that most Mac users will just brew install unixodbc
+            settings['libraries'].append('odbc')
 
         # Python functions take a lot of 'char *' that really should be const.  gcc complains about this *a lot*
         settings['extra_compile_args'].extend([
             '-Wno-write-strings',
             '-Wno-deprecated-declarations'
         ])
-
-        # Apple has decided they won't maintain the iODBC system in OS/X and has added deprecation warnings in 10.8.
-        # For now target 10.7 to eliminate the warnings.
-        settings['define_macros'].append( ('MAC_OS_X_VERSION_10_7',) )
 
     else:
         # Other posix-like: Linux, Solaris, etc.
